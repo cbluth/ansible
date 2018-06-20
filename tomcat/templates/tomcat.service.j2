@@ -1,0 +1,24 @@
+[Unit]
+Description={{ tomcat_service_name }}
+After=network.target
+
+[Service]
+Type=forking
+User={{ tomcat_server_user }}
+Group={{ tomcat_server_group }}
+
+Environment=CATALINA_PID={{ tomcat_home }}/{{ tomcat_service_name }}.pid
+Environment=JAVA_HOME=/opt/oracle/jdk1.8.0_131/jre
+Environment=CATALINA_HOME={{ tomcat_home }}
+Environment=CATALINA_BASE={{ tomcat_home }}
+Environment='CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC'
+Environment='JAVA_OPTS=-Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom'
+ExecStart={{ tomcat_home }}/bin/startup.sh
+ExecStop=/bin/kill -15 $MAINPID
+
+UMask=0007
+RestartSec=10
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

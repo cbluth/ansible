@@ -1,0 +1,64 @@
+---
+
+- name: group add
+  group:
+    name: "{{ tomcat_server_group }}"
+  sudo: True
+
+
+- name: user add
+  user:
+    name: "{{ tomcat_server_user }}"
+    group: "{{ tomcat_server_group }}"
+    home: "{{ tomcat_user_home }}"
+    createhome: no
+  sudo: True
+
+- name: download and extract
+  unarchive:
+    src: "{{ tomcat_binary_url }}"
+    dest: "/opt/"
+    remote_src: yes
+  sudo: True
+
+- name: symlink install directory
+  file:
+    src: "{{ tomcat_target_dir }}"
+    path: "{{ tomcat_home }}"
+    state: link
+  sudo: True
+
+- name: change ownership of target installation
+  file:
+    path: "{{ tomcat_target_dir }}"
+    owner: tomcat
+    group: tomcat
+    state: directory
+    recurse: yes
+  sudo: True
+
+- name: change permissions of conf
+  command: sudo chmod 750 /opt/tomcat/conf
+
+- name: systemd
+  template: src=tomcat.service.j2 dest=/etc/systemd/system/tomcat.service
+  notify: restart tomcat
+  sudo: True
+
+- name: restart daemon
+  command: systemctl daemon-reload
+  sudo: True
+
+- name: Install Required package for the Tomcat 
+  yum: name=wget state=latest
+
+- name: Deploy sample war file
+  command: wget https://tomcat.apache.org/tomcat-8.0-doc/appdev/sample/sample.war -O {{ warRemotePath }}/{{ warName }}
+
+- name: Unzip WAR file
+  unarchive: src={{ warRemotePath }}/{{ warName }} dest=/opt/tomcat/webapps/ROOT/ copy=no mode=0755 owner={{ tomcat_server_user }}  group={{ tomcat_server_group }}
+  sudo: True
+  notify: restart tomcat
+   
+- name: Delete remote war file
+  file: path={{ warRemotePath }}/{{ warName }} state=absent

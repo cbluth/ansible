@@ -1,0 +1,13 @@
+tomcat_packages:
+  - tomcat
+tomcat_admin_packages:
+  - tomcat-admin
+
+tomcat_service_name:   tomcat
+tomcat_admin_install: yes
+tomcat_server_user: tomcat
+tomcat_server_group: tomcat
+tomcat_user_home: /home/tomcat
+tomcat_java_home: $JAVA_HOME
+warName: sample.war
+warRemotePath: /opt

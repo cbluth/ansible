@@ -1,0 +1,28 @@
+---
+
+# Include variables and define needed variables.
+
+- name: Install EPEL release for nginx
+  yum: name=epel-release state=present
+
+- name: Install nginx web server
+  yum: name=nginx state=installed update_cache=true
+  notify: restart nginx
+
+- name: "copy nginx.conf file to run nginx on port 8080"
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: 0755
+  notify: restart nginx
+
+- name: "override existing index.html"
+  template:
+    src: index.html.j2
+    dest: /usr/share/nginx/html/index.html
+    owner: root
+    group: root
+    mode: 0755
+  notify: restart nginx

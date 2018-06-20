@@ -1,0 +1,8 @@
+---
+- hosts: localhost
+  become: true
+  roles:
+    - oracle-java
+    - tomcat
+    - activemq
+    - nginx  

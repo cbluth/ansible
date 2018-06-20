@@ -1,0 +1,26 @@
+---
+# defaults file for activemq-ansible-role
+amq_user: activemq
+amq_group:  activemq
+amq_install_dir: /opt
+amq_run_dir: "/opt/{{ amq_user }}"
+amq_home_dir:  /var/lib/activemq
+amq_log_dir: /var/log/activemq
+
+amq_install_mode: tarball
+amq_skip_checksum: true
+amq_url_prefix: "http://archive.apache.org/dist/activemq/"
+
+# calculate version
+amq_version_major: "5"
+amq_version_minor: "14"
+amq_version_patch: "0"
+
+amq_version: "{{ amq_version_major }}.{{ amq_version_minor }}.{{ amq_version_patch }}"
+
+amq_url: "{{ amq_url_prefix }}/{{ amq_version }}/apache-activemq-{{ amq_version }}-bin.tar.gz"
+
+amq_env_vars:
+  ACTIVEMQ_USER: "{{ amq_user }}"
+  ACTIVEMQ_BASE: "{{ amq_run_dir }}"
+

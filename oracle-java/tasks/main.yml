@@ -1,0 +1,59 @@
+---
+
+# Ansible role to install Oracle Java 8
+
+  - name: Create Download Folder
+    file: state=directory path={{download_folder}} owner=root group=root recurse=yes
+  
+  - name: Create Directory structure
+    file: state=directory path={{java_name}} owner=root group=root recurse=yes
+
+  - name: Download Java
+    get_url: url={{ jdk_tarball_url }}  dest={{ java_archive }} headers="Cookie:' gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie'" validate_certs=no owner=root group=root mode=744
+
+  - name: Unpack archive
+    action: shell tar -xzvf {{java_archive}} -C {{download_folder}}
+
+  - name: Fix ownership
+    file: state=directory path={{java_name}} owner=root group=root recurse=yes
+
+  - name: Install unzip package
+    yum: name=unzip state=latest
+
+  - name: Make Java available for system by updating alternatives
+    command: 'alternatives --install "/usr/bin/java" "java" "{{ java_name }}/bin/java" 2000'
+
+  - name: Set systemwide oracle env file under /etc/profile.d/
+    set_fact: remote_file_path={{profile_path}}/oracle_jdk.sh
+
+  # Create a blank file
+  - name: Create a new file {{profile_path}}/oracle_jdk.sh
+    file: path={{remote_file_path}} state=touch
+
+  # Check remote file
+  - stat: path={{remote_file_path}}
+    register: file_path
+
+  # Write file content in file_content variable
+  #  - set_fact: file_content=""
+
+  # If file exist then copy content in remote file.
+  #  - copy: content={{file_content}} dest={{remote_file_path}}
+  #    when: file_path.stat.exists == true
+  #
+  # Copy /etc/profile.d/oracle_jdk.sh with content
+  - copy:
+      content: |
+                #!/bin/bash
+                export JAVA_HOME={{ java_name }}
+                export JRE_HOME={{ java_name }}/jre
+                export PATH=$PATH:{{ java_name }}/bin:{{ java_name }}/jre/bin
+      dest: /etc/profile.d/oracle_jdk.sh
+
+  # Fix the executable permission
+  - name: Set executable perission
+    file: path={{profile_path}}/oracle_jdk.sh owner=root group=root mode=0555 state=file recurse=no
+
+  # Export the env on th fly to make system wide change
+  - name: Source the file {{profile_path}}/oracle_jdk.sh
+    action: shell source /etc/profile 

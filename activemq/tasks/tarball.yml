@@ -1,0 +1,97 @@
+---
+
+- name: "check systemd"
+  stat:
+    path: /etc/systemd
+  register: systemd
+
+- debug: var=systemd.stat
+
+- name: "set fact if systemd is avail"
+  set_fact:
+    amq_systemd: true
+  when: systemd.stat.exists
+
+- name: "Add Activemq group"
+  group:
+    name: "{{ amq_group }}"
+  tags:
+    - init
+    - group
+
+- name: "Add Activemq user"
+  user:
+    name: "{{ amq_user }}"
+    group: "{{ amq_group }}"
+    home: "{{ amq_home_dir }}"
+    comment: "ActiveMQ service account"
+    createhome: no
+    state: present
+    system: yes
+  tags:
+    - init
+    - user
+
+- name: "Create requires directories [home/log etc etc]"
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+    owner: "{{ amq_user }}"
+    group: "{{ amq_group }}"
+  with_items:
+  - "{{ amq_home_dir }}"
+  - "{{ amq_log_dir }}"
+
+
+- name: "Get tarball"
+  get_url:
+    url: "{{ amq_url }}"
+    dest: "/tmp/apache-activemq-{{ amq_version }}-bin.tar.gz"
+    owner: "{{ amq_user }}"
+    group: "{{ amq_group }}"
+  tags:
+    - getbin
+
+- name: "Extract tarball" 
+  command: tar zxvf /tmp/apache-activemq-{{ amq_version }}-bin.tar.gz --directory /opt/
+
+- name: "Change Ownership"
+  command: chown "{{ amq_user }}"."{{ amq_user }}" /opt/apache-activemq-"{{ amq_version }}" -R
+  tags:
+    - chown
+
+- name: "Create link activemq to /opt/activemq"
+  file: src="{{ amq_install_dir }}/apache-activemq-{{ amq_version }}"
+        dest="{{ amq_install_dir }}/activemq"
+        state=link
+        owner="{{ amq_user }}"
+        group="{{ amq_group }}"
+  tags:
+    - link
+
+- name: "Generate empty log file ..."
+  file:
+    path: "{{ amq_log_dir }}"
+    state: touch
+    mode: "u=rw,g=r,o=r"
+    owner: root
+    group: root
+
+- name: "Generate /etc/sysconfig/activemq Redhat"
+  template:
+    src: sysconfig_activemq.j2
+    dest: /etc/sysconfig/activemq
+    owner: root
+    group: root
+    mode: 0755
+
+- name: "Generate systemd service file"
+  template:
+    src: activemq.service.j2
+    dest: /etc/systemd/system/activemq.service
+    owner: root
+    group: root
+  when: amq_systemd is defined
+
+- service: name=activemq enabled=yes state=started
